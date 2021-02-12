@@ -209,6 +209,7 @@ class EnergyPlusEnv(Env):
         num_data = len(self.ep_model.action)
         if self.pipe_io.writeline('{0:d}'.format(num_data)):
             return False
+        self.ep_model.action = self.ep_model.action[0]
         for i in range(num_data):
             self.pipe_io.writeline('{0:f}'.format(self.ep_model.action[i]))
         self.pipe_io.flush()
