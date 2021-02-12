@@ -3,7 +3,7 @@
 from mpi4py import MPI
 from baselines_energyplus.common.energyplus_util import make_energyplus_env, energyplus_arg_parser, energyplus_logbase_dir
 from baselines import logger
-from baselines.ppo1.mlp_policy import MlpPolicy
+from baselines.common.models import mlp
 from baselines.trpo_mpi import trpo_mpi
 import os
 import shutil
@@ -43,7 +43,7 @@ def train(env_id, num_timesteps, seed):
 
     env = make_energyplus_env(env_id, workerseed)
 
-    trpo_mpi.learn(env=env, network='mlp', 
+    trpo_mpi.learn(env=env, network=mlp(num_hidden=32, num_layers=2),
                    total_timesteps=num_timesteps,
                    #timesteps_per_batch=1*1024, max_kl=0.01, cg_iters=10, cg_damping=0.1,
                    timesteps_per_batch=16*1024, max_kl=0.01, cg_iters=10, cg_damping=0.1,
