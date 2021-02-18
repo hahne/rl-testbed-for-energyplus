@@ -1,20 +1,27 @@
 #!/usr/bin/env python3
 # noinspection PyUnresolvedReferences
+import os
+
+import gym_energyplus
 from mpi4py import MPI
 from baselines_energyplus.common.energyplus_util import make_energyplus_env, energyplus_arg_parser, energyplus_logbase_dir
 from baselines import logger
-from baselines.ppo1.mlp_policy import MlpPolicy
-from baselines.trpo_mpi import trpo_mpi
-import os
-import shutil
+from baselines_energyplus.custom_baselines.ppo1.mlp_policy import MlpPolicy
+from baselines_energyplus.custom_baselines.trpo_mpi import trpo_mpi
+# from baselines.trpo_mpi import trpo_mpi
 import datetime
-import gym_energyplus
+import shutil
+
 
 def train(env_id, num_timesteps, seed):
     import baselines.common.tf_util as U
     sess = U.single_threaded_session()
     sess.__enter__()
     workerseed = seed + 10000 * MPI.COMM_WORLD.Get_rank()
+    # test the initialization function
+    # print('testing the initializtion')
+    # print( U.normc_initializer(1.0)(shape=(2,3)).eval(), U.normc_initializer(0.01)(shape=(2,3)).eval() )
+
     def policy_fn(name, ob_space, ac_space):
         return MlpPolicy(name=name, ob_space=ob_space, ac_space=ac_space,
             hid_size=32, num_hid_layers=2)
@@ -36,7 +43,8 @@ def train(env_id, num_timesteps, seed):
     rank = MPI.COMM_WORLD.Get_rank()
     if rank == 0:
         print('train: init logger with dir={}'.format(log_dir)) #XXX
-        logger.configure(log_dir)
+        # logger.configure(log_dir)
+        logger.configure(log_dir, format_strs=['stdout', 'log', 'csv', 'tensorboard'])
     else:
         logger.configure(format_strs=[])
         logger.set_level(logger.DISABLED)
@@ -49,6 +57,7 @@ def train(env_id, num_timesteps, seed):
                    timesteps_per_batch=16*1024, max_kl=0.01, cg_iters=10, cg_damping=0.1,
                    gamma=0.99, lam=0.98, vf_iters=5, vf_stepsize=1e-3)
     env.close()
+
 
 def main():
     args = energyplus_arg_parser().parse_args()

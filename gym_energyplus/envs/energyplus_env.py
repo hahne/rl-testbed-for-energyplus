@@ -16,6 +16,7 @@ from argparse import ArgumentParser
 from gym_energyplus.envs.pipe_io import PipeIo
 from gym_energyplus.envs.energyplus_model import EnergyPlusModel
 from gym_energyplus.envs.energyplus_build_model import build_ep_model
+from baselines import logger
 
 class EnergyPlusEnv(Env):
     metadata = {'render.modes': ['human']}
@@ -201,6 +202,8 @@ class EnergyPlusEnv(Env):
         observation = self.ep_model.get_state()
         reward = self.ep_model.compute_reward()
 
+        # logg to tensorflow
+        logger.record_tabular('reward_step', reward)
         if done:
             print('EnergyPlusEnv: (done)')
         return observation, reward, done, {}

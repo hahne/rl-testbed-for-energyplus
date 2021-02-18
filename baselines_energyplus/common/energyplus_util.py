@@ -1,7 +1,6 @@
 """
 Helpers for script run_energyplus.py.
 """
-
 import os
 import gym
 from baselines import logger
