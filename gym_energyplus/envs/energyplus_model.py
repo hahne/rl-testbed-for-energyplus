@@ -102,6 +102,8 @@ class EnergyPlusModel(metaclass=ABCMeta):
         self.action_prev = self.action
         self.action = self.action_space.low + (normalized_action + 1.) * 0.5 * (self.action_space.high - self.action_space.low)
         self.action = np.clip(self.action, self.action_space.low, self.action_space.high)
+        if os.path.exists("/tmp/verbose"):
+            print(self.action)
 
     @abstractmethod
     def setup_spaces(self): pass
@@ -237,7 +239,7 @@ class EnergyPlusModel(metaclass=ABCMeta):
             firstline = f.readline()
             assert firstline.startswith('#')
             metadata = json.loads(firstline[1:])
-            assert metadata['env_id'] == "EnergyPlus-v0"
+            #assert metadata['env_id'] == "EnergyPlus-v0"
             assert set(metadata.keys()) == {'env_id', 't_start'},  "Incorrect keys in monitor metadata"
             df = pd.read_csv(f, index_col=None)
             assert set(df.keys()) == {'l', 't', 'r'}, "Incorrect keys in monitor logline"
