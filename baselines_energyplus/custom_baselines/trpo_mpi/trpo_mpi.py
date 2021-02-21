@@ -25,7 +25,9 @@ def manual_controller(ac, ob):
         ac[1] += 0.01
         ac[3] += 0.03
 
-    ac = np.clip(ac, a_min =[-1.0, -1.0, -0.5, -0.5], a_max = [1.0, 1.0, 1.0, 1.0])
+    ac[2] = 0.0
+    ac[3] = 0.0
+    ac = np.clip(ac, a_min =[-1.0, -1.0, -1.0, -1.0], a_max = [1.0, 1.0, 1.2, 1.2])
     return ac
 
 
@@ -37,6 +39,8 @@ def traj_segment_generator(pi, env, horizon, stochastic, use_manual_controller_i
         controler_ac = ac.copy()
     else:
         ac = env.action_space.sample()
+
+    policy_ac = ac
     new = True
     rew = 0.0
     ob = env.reset()
@@ -56,16 +60,18 @@ def traj_segment_generator(pi, env, horizon, stochastic, use_manual_controller_i
     prevcontact = prevacs.copy()
 
     while True:
-        prevac = ac
         # prevcontact = controler_ac
         # if use the manual controller:
         if use_manual_controller_integration:
+            prevac = policy_ac
+
             controler_ac = manual_controller(ac=controler_ac, ob=ob)
+            ob[6] = controler_ac[0]
+            ob[7] = controler_ac[1]
             policy_ac, vpred = pi.act(stochastic, ob)
             # scale the policy_action
-            pi_ac_coef = 0
-            ac = controler_ac + pi_ac_coef*policy_ac
-            # ac = controler_ac
+            w_p = np.array([0.3, 0.3, 1.0, 1.0])
+            ac = controler_ac + np.multiply(w_p,policy_ac)
             # vpred = 0.0
             logger.record_tabular('action_controlerWestSet', controler_ac[0])
             logger.record_tabular('action_policyWestSet', policy_ac[0])
@@ -78,6 +84,7 @@ def traj_segment_generator(pi, env, horizon, stochastic, use_manual_controller_i
             logger.record_tabular('action_total_action_West', ac[0])
             logger.record_tabular('action_total_action_East', ac[1])
         else:
+            prevac = ac
             ac, vpred = pi.act(stochastic, ob)
         # Slight weirdness here because we need value function at time T
         # before returning segment [0, T-1] so we get the correct
@@ -88,6 +95,7 @@ def traj_segment_generator(pi, env, horizon, stochastic, use_manual_controller_i
         logger.record_tabular('EastZoneFlow', ac[3])
         logger.record_tabular('observation_westZoneTemp', ob[1])
         logger.record_tabular('observation_EastZoneTemp', ob[2])
+        logger.record_tabular('observation_ElectricDemand', ob[4])
         if t > 0 and t % horizon == 0:
             yield {"ob" : obs, "rew" : rews, "vpred" : vpreds, "new" : news,
                     "ac" : acs, "prevac" : prevacs, "nextvpred": vpred * (1 - new),
@@ -115,6 +123,7 @@ def traj_segment_generator(pi, env, horizon, stochastic, use_manual_controller_i
             cur_ep_ret = 0
             cur_ep_len = 0
             ob = env.reset()
+            #controler_ac = np.array([-0.7, -0.7, 1.0, 1.0])
         t += 1
 
 def add_vtarg_and_adv(seg, gamma, lam):

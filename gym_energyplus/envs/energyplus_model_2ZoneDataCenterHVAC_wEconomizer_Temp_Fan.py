@@ -79,9 +79,10 @@ class EnergyPlusModel2ZoneDataCenterHVAC_wEconomizer_Temp_Fan(EnergyPlusModel):
         self.action_space = spaces.Box(low =   np.array([ lo, lo, flow_lo, flow_lo]),
                                        high =  np.array([ hi, hi, flow_hi, flow_hi]),
                                        dtype = np.float32)
-        self.observation_space = spaces.Box(low =   np.array([-20.0, -20.0, -20.0,          0.0,          0.0,          0.0]),
-                                            high =  np.array([ 50.0,  50.0,  50.0, 1000000000.0, 1000000000.0, 1000000000.0]),
-                                            dtype = np.float32)
+        self.observation_space = spaces.Box( 
+            low =   np.array([-20.0, -20.0, -20.0,          0.0,          0.0,          0.0, -1.0, -1.0]),
+            high =  np.array([ 50.0,  50.0,  50.0, 1000000000.0, 1000000000.0, 1000000000.0,  1.0, 1.0]),
+            dtype = np.float32)
         
     def set_raw_state(self, raw_state):
         if raw_state is not None:
@@ -99,7 +100,20 @@ class EnergyPlusModel2ZoneDataCenterHVAC_wEconomizer_Temp_Fan(EnergyPlusModel):
         #return self.compute_reward_gaussian1_0_trapezoid1_0_pue0_0(raw_state)
         #return self.compute_reward_gaussian1_0_trapezoid0_1_pue0_0_pow0(raw_state)
         #return self.compute_reward_gaussian1_0_trapezoid1_0_pue0_0(raw_state)
+        #return self.compute_reward_emphasize_power(raw_state)
         
+    def compute_reward_emphasize_power(self, raw_state = None): # gaussian/trapezoid, PUE
+        return self.compute_reward_common(
+            temperature_center = 23.5,
+            temperature_tolerance = 0.5,
+            temperature_gaussian_weight = 1.0,
+            temperature_gaussian_sharpness = 0.5,
+            temperature_trapezoid_weight = 0.1,
+            fluctuation_weight = 0.0,
+            PUE_weight = 0.0,
+            Whole_Building_Power_weight = 1 / 50000.0,
+            raw_state = raw_state)
+    
     def compute_reward_center23_5_gaussian1_0_trapezoid0_1_pue0_0(self, raw_state = None): # gaussian/trapezoid, PUE
         return self.compute_reward_common(
             temperature_center = 23.5,
@@ -252,7 +266,7 @@ class EnergyPlusModel2ZoneDataCenterHVAC_wEconomizer_Temp_Fan(EnergyPlusModel):
     #   state[4] = raw_state[5]: Whole Building:Facility Total Building Electric Demand Power [W](Hourly)
     #   state[5] = raw_state[6]: Whole Building:Facility Total HVAC Electric Demand Power [W](Hourly)
     def format_state(self, raw_state):
-        return np.array([raw_state[0], raw_state[1], raw_state[2], raw_state[4], raw_state[5], raw_state[6]])
+        return np.array([raw_state[0], raw_state[1], raw_state[2], raw_state[4], raw_state[5], raw_state[6], 0.0, 0.0])
 
     def read_episode(self, ep):
         if type(ep) is str:

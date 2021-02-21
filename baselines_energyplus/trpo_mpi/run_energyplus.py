@@ -12,6 +12,7 @@ from baselines_energyplus.custom_baselines.trpo_mpi import trpo_mpi
 import datetime
 import shutil
 
+import subprocess
 
 def train(env_id, num_timesteps, seed):
     import baselines.common.tf_util as U
@@ -48,6 +49,10 @@ def train(env_id, num_timesteps, seed):
     else:
         logger.configure(format_strs=[])
         logger.set_level(logger.DISABLED)
+
+    f = open(log_dir + "/diff.patch", "w")
+    subprocess.run(["git", "diff"], stdout=f)
+    f.close()
 
     env = make_energyplus_env(env_id, workerseed)
 
