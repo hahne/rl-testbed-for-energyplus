@@ -25,7 +25,7 @@ def train(env_id, num_timesteps, seed):
 
     def policy_fn(name, ob_space, ac_space):
         return MlpPolicy(name=name, ob_space=ob_space, ac_space=ac_space,
-            hid_size=32, num_hid_layers=2)
+            hid_size=16, num_hid_layers=2)
 
     # Create a new base directory like /tmp/openai-2018-05-21-12-27-22-552435
     log_dir = os.path.join(energyplus_logbase_dir(), datetime.datetime.now().strftime("openai-%Y-%m-%d-%H-%M-%S-%f"))
