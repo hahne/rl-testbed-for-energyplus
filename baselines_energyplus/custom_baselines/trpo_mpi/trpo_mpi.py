@@ -56,14 +56,16 @@ def traj_segment_generator(pi, env, horizon, stochastic, use_manual_controller_i
     prevcontact = prevacs.copy()
 
     while True:
-        prevac = ac
         # prevcontact = controler_ac
         # if use the manual controller:
         if use_manual_controller_integration:
             controler_ac = manual_controller(ac=controler_ac, ob=ob)
+            # add the manual controller action to ob
+            ob[6:] =  controler_ac
             policy_ac, vpred = pi.act(stochastic, ob)
+            prevac = policy_ac
             # scale the policy_action
-            pi_ac_coef = 0
+            pi_ac_coef = 1
             ac = controler_ac + pi_ac_coef*policy_ac
             # ac = controler_ac
             # vpred = 0.0
@@ -78,6 +80,8 @@ def traj_segment_generator(pi, env, horizon, stochastic, use_manual_controller_i
             logger.record_tabular('action_total_action_West', ac[0])
             logger.record_tabular('action_total_action_East', ac[1])
         else:
+            print('not using manual controller')
+            prevac = ac
             ac, vpred = pi.act(stochastic, ob)
         # Slight weirdness here because we need value function at time T
         # before returning segment [0, T-1] so we get the correct

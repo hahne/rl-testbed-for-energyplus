@@ -37,17 +37,43 @@ class MlpPolicy(object):
                 out = out / 10000000000.0
                 return tf.constant(out)
             return _initializer
-            
+        
+        # new initialization
+        # with tf.variable_scope('pol'):
+        #     last_out = obz
+        #     for i in range(num_hid_layers):
+        #         last_out = tf.nn.tanh(tf.layers.dense(last_out, hid_size, name='fc%i'%(i+1), kernel_initializer=U.normc_initializer(0.01)))
+        #     if gaussian_fixed_var and isinstance(ac_space, gym.spaces.Box):
+        #         mean = tf.layers.dense(last_out, pdtype.param_shape()[0]//2, name='final', kernel_initializer=initialize_last_layer())
+        #         logstd = tf.get_variable(name="logstd", shape=[1, pdtype.param_shape()[0]//2], initializer=tf.zeros_initializer())
+        #         pdparam = tf.concat([mean, mean * 0.0 + logstd], axis=1)
+        #     else:
+        #         pdparam = tf.layers.dense(last_out, pdtype.param_shape()[0], name='final', kernel_initializer=initialize_last_layer())
+
+        # new initialization V2
         with tf.variable_scope('pol'):
             last_out = obz
             for i in range(num_hid_layers):
-                last_out = tf.nn.tanh(tf.layers.dense(last_out, hid_size, name='fc%i'%(i+1), kernel_initializer=U.normc_initializer(0.01)))
+                last_out = tf.nn.tanh(tf.layers.dense(last_out, hid_size, name='fc%i'%(i+1), kernel_initializer=U.normc_initializer(1.0)))
             if gaussian_fixed_var and isinstance(ac_space, gym.spaces.Box):
                 mean = tf.layers.dense(last_out, pdtype.param_shape()[0]//2, name='final', kernel_initializer=initialize_last_layer())
-                logstd = tf.get_variable(name="logstd", shape=[1, pdtype.param_shape()[0]//2], initializer=tf.zeros_initializer())
+                logstd = tf.get_variable(name="logstd", shape=[1, pdtype.param_shape()[0]//2], initializer=tf.constant_initializer(-6))
                 pdparam = tf.concat([mean, mean * 0.0 + logstd], axis=1)
             else:
                 pdparam = tf.layers.dense(last_out, pdtype.param_shape()[0], name='final', kernel_initializer=initialize_last_layer())
+        
+        # old initialization
+        # with tf.variable_scope('pol'):
+        #     print('\n\n Old initialization \n\n')
+        #     last_out = obz
+        #     for i in range(num_hid_layers):
+        #         last_out = tf.nn.tanh(tf.layers.dense(last_out, hid_size, name='fc%i'%(i+1), kernel_initializer=U.normc_initializer(1.0)))
+        #     if gaussian_fixed_var and isinstance(ac_space, gym.spaces.Box):
+        #         mean = tf.layers.dense(last_out, pdtype.param_shape()[0]//2, name='final', kernel_initializer=U.normc_initializer(0.01))
+        #         logstd = tf.get_variable(name="logstd", shape=[1, pdtype.param_shape()[0]//2], initializer=tf.zeros_initializer())
+        #         pdparam = tf.concat([mean, mean * 0.0 + logstd], axis=1)
+        #     else:
+        #         pdparam = tf.layers.dense(last_out, pdtype.param_shape()[0], name='final', kernel_initializer=U.normc_initializer(0.01))
 
         self.pd = pdtype.pdfromflat(pdparam)
 
