@@ -109,7 +109,7 @@ def traj_segment_generator(pi, env, horizon, stochastic, use_manual_controller_i
         obs[i] = ob
         vpreds[i] = vpred
         news[i] = new
-        acs[i] = ac
+        acs[i] = policy_ac
         prevacs[i] = prevac
 
         ob, rew, new, _ = env.step(ac)
