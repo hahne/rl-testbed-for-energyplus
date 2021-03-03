@@ -7,10 +7,13 @@ from mpi4py import MPI
 from baselines_energyplus.common.energyplus_util import make_energyplus_env, energyplus_arg_parser, energyplus_logbase_dir
 from baselines import logger
 from baselines_energyplus.custom_baselines.ppo1.mlp_policy import MlpPolicy
-from baselines_energyplus.custom_baselines.trpo_mpi import trpo_mpi
+# from baselines_energyplus.custom_baselines.trpo_mpi import trpo_mpi
+from baselines_energyplus.custom_baselines.trpo_mpi import trpo_mpi_safe, trpo_mpi
 # from baselines.trpo_mpi import trpo_mpi
 import datetime
 import shutil
+
+import subprocess
 
 
 def train(env_id, num_timesteps, seed):
@@ -24,7 +27,7 @@ def train(env_id, num_timesteps, seed):
 
     def policy_fn(name, ob_space, ac_space):
         return MlpPolicy(name=name, ob_space=ob_space, ac_space=ac_space,
-            hid_size=32, num_hid_layers=2)
+            hid_size=16, num_hid_layers=2)
 
     # Create a new base directory like /tmp/openai-2018-05-21-12-27-22-552435
     log_dir = os.path.join(energyplus_logbase_dir(), datetime.datetime.now().strftime("openai-%Y-%m-%d-%H-%M-%S-%f"))
@@ -48,14 +51,25 @@ def train(env_id, num_timesteps, seed):
     else:
         logger.configure(format_strs=[])
         logger.set_level(logger.DISABLED)
+    
+    f = open(log_dir + "/diff.patch", "w")
+    subprocess.run(["git", "diff"], stdout=f)
+    f.close()
 
     env = make_energyplus_env(env_id, workerseed)
 
-    trpo_mpi.learn(env, policy_fn,
+    # trpo_mpi_safe.learn(env, policy_fn,
+    #                max_timesteps=num_timesteps,
+    #                #timesteps_per_batch=1*1024, max_kl=0.01, cg_iters=10, cg_damping=0.1,
+    #                timesteps_per_batch=16*1024, max_kl=0.01, cg_iters=10, cg_damping=0.1,
+    #                gamma=0.99, lam=0.98, vf_iters=5, vf_stepsize=1e-3)
+
+    trpo_mpi_safe.learn(env, policy_fn,
                    max_timesteps=num_timesteps,
                    #timesteps_per_batch=1*1024, max_kl=0.01, cg_iters=10, cg_damping=0.1,
                    timesteps_per_batch=16*1024, max_kl=0.01, cg_iters=10, cg_damping=0.1,
                    gamma=0.99, lam=0.98, vf_iters=5, vf_stepsize=1e-3)
+
     env.close()
 
 
