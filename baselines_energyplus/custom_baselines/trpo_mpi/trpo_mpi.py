@@ -31,7 +31,7 @@ def manual_controller(ac, ob):
     return ac
 
 
-def traj_segment_generator(pi, env, horizon, stochastic, use_manual_controller_integration=True):
+def traj_segment_generator(pi, env, horizon, stochastic, use_manual_controller_integration=False):
     # Initialize state variables
     t = 0
     if use_manual_controller_integration:

@@ -28,26 +28,17 @@ class MlpPolicy(object):
             for i in range(num_hid_layers):
                 last_out = tf.nn.tanh(tf.layers.dense(last_out, hid_size, name="fc%i"%(i+1), kernel_initializer=U.normc_initializer(1.0)))
             self.vpred = tf.layers.dense(last_out, 1, name='final', kernel_initializer=U.normc_initializer(1.0))[:,0]
-        
-        def initialize_last_layer(std=1.0):
-            import numpy as np
-            def _initializer(shape, dtype=None, partition_info=None):  # pylint: disable=W0613
-                out = np.random.randn(*shape).astype(np.float32)
-                out *= std / np.sqrt(np.square(out).sum(axis=0, keepdims=True))
-                out = out / 10000000000.0
-                return tf.constant(out)
-            return _initializer
-            
+
         with tf.variable_scope('pol'):
             last_out = obz
             for i in range(num_hid_layers):
-                last_out = tf.nn.tanh(tf.layers.dense(last_out, hid_size, name='fc%i'%(i+1), kernel_initializer=U.normc_initializer(0.01)))
+                last_out = tf.nn.tanh(tf.layers.dense(last_out, hid_size, name='fc%i'%(i+1), kernel_initializer=U.normc_initializer(1.0)))
             if gaussian_fixed_var and isinstance(ac_space, gym.spaces.Box):
-                mean = tf.layers.dense(last_out, pdtype.param_shape()[0]//2, name='final', kernel_initializer=initialize_last_layer())
+                mean = tf.layers.dense(last_out, pdtype.param_shape()[0]//2, name='final', kernel_initializer=U.normc_initializer(0.01))
                 logstd = tf.get_variable(name="logstd", shape=[1, pdtype.param_shape()[0]//2], initializer=tf.zeros_initializer())
                 pdparam = tf.concat([mean, mean * 0.0 + logstd], axis=1)
             else:
-                pdparam = tf.layers.dense(last_out, pdtype.param_shape()[0], name='final', kernel_initializer=initialize_last_layer())
+                pdparam = tf.layers.dense(last_out, pdtype.param_shape()[0], name='final', kernel_initializer=U.normc_initializer(0.01))
 
         self.pd = pdtype.pdfromflat(pdparam)
 
