@@ -2,7 +2,9 @@
 # noinspection PyUnresolvedReferences
 import argparse
 import os
+import re
 import matplotlib.pyplot as plt
+import numpy as np
 plt.rcParams.update({
     "pgf.texsystem": "pdflatex",
     "pgf.rcfonts": False,
@@ -38,15 +40,18 @@ def energyplus_plot(env_id, log_dirs=''):
     powers = []
     temp_w = []
     temp_e = []
-    num_episodes = 24
+    labels = []
+    num_episodes = 35
     for log_dir in log_dirs_list:
+        label = re.search('\d\d\d\d-\d\d-\d\d-\d\d-\d\d-\d\d', log_dir).group(0)
+        labels.append(label)
         env.ep_model.get_episode_list(log_dir)
         print(env.ep_model.num_episodes)
         rewards_per_episode = []
         total_power_per_episode = []
         temp_w_per_episode = []
         temp_e_per_episode = []
-        for ep in range(num_episodes):
+        for ep in range(min([env.ep_model.num_episodes, num_episodes])):
             print('Episode {}'.format(ep))
             env.ep_model.read_episode(ep)
             MeanRew, _, _, _ = env.ep_model.get_statistics(env.ep_model.rewards)
@@ -71,10 +76,15 @@ def energyplus_plot(env_id, log_dirs=''):
         temp_e.append(temp_e_per_episode)
 
 
-    labels = ['Rule-based + RLv2', 'RLv2', 'RLv1']
+    #labels = ['Rule-based + RLv2', 'RLv2', 'RLv1']
+    labels[0] = "Baseline"
+    labels[1] = "Moriyama et al."
+    labels[2] = "Rule-based + RL"
+    labels[3] = "Rule-based + RL (temp rew max 0.8)"
 
     idx = 0
     for rewards_per_episode in rewards:
+        rewards_per_episode = np.pad(rewards_per_episode,(0,max(0,num_episodes-len(rewards_per_episode))),mode='edge')
         plt.plot(range(num_episodes),rewards_per_episode, label=labels[idx])
         plt.title('Rewards')
         plt.xlabel('Episode')
@@ -84,11 +94,13 @@ def energyplus_plot(env_id, log_dirs=''):
     plt.legend()
     #plt.show()
     plt.savefig('reward.pdf', bbox_inches='tight', pad_inches = 0.02)
+    plt.savefig('reward.pgf', bbox_inches='tight', pad_inches = 0.02)
     plt.close()
 
 
     idx = 0
     for powers_per_episode in powers:
+        powers_per_episode = np.pad(powers_per_episode,(0,max(0,num_episodes-len(powers_per_episode))),mode='edge')
         plt.plot(range(num_episodes),powers_per_episode, label=labels[idx])
         plt.title('Power Consumption over Episodes')
         plt.xlabel('Episode')
@@ -98,32 +110,37 @@ def energyplus_plot(env_id, log_dirs=''):
     plt.legend()
     #plt.show()
     plt.savefig('power_consumption.pdf', bbox_inches='tight', pad_inches = 0.02)
+    plt.savefig('power_consumption.pgf', bbox_inches='tight', pad_inches = 0.02)
     plt.close()
 
     idx = 0
     for temp_w_per_episode in temp_w:
+        temp_w_per_episode = np.pad(temp_w_per_episode,(0,max(0,num_episodes-len(temp_w_per_episode))),mode='edge')
         plt.plot(range(num_episodes),temp_w_per_episode, label=labels[idx])
         plt.title('West Zone Temperature in Range')
         plt.xlabel('Episode')
-        plt.ylabel('in range / total')
+        plt.ylabel('timesteps in range / total')
         idx +=1
 
     plt.legend()
     #plt.show()
     plt.savefig('west_zone_in_range.pdf', bbox_inches='tight', pad_inches = 0.02)
+    plt.savefig('west_zone_in_range.pgf', bbox_inches='tight', pad_inches = 0.02)
     plt.close()
 
     idx = 0
     for temp_e_per_episode in temp_e:
+        temp_e_per_episode = np.pad(temp_e_per_episode,(0,max(0,num_episodes-len(temp_e_per_episode))),mode='edge')
         plt.plot(range(num_episodes),temp_e_per_episode, label=labels[idx])
         plt.title('East Zone Temperature in Range')
         plt.xlabel('Episode')
-        plt.ylabel('in range / total')
+        plt.ylabel('timesteps in range / total')
         idx +=1
 
     plt.legend()
     #plt.show()
     plt.savefig('east_zone_in_range.pdf', bbox_inches='tight', pad_inches = 0.02)
+    plt.savefig('east_zone_in_range.pgf', bbox_inches='tight', pad_inches = 0.02)
     plt.close()
 
     env.close()

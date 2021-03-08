@@ -51,6 +51,7 @@ def train(env_id, num_timesteps, seed):
         logger.set_level(logger.DISABLED)
 
     f = open(log_dir + "/diff.patch", "w")
+    subprocess.run(["git", "status"], stdout=f)
     subprocess.run(["git", "diff"], stdout=f)
     f.close()
 
