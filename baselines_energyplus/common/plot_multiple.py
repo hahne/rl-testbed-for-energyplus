@@ -41,7 +41,7 @@ def energyplus_plot(env_id, log_dirs=''):
     temp_w = []
     temp_e = []
     labels = []
-    num_episodes = 35
+    num_episodes = 200
     for log_dir in log_dirs_list:
         label = re.search('\d\d\d\d-\d\d-\d\d-\d\d-\d\d-\d\d', log_dir).group(0)
         labels.append(label)
@@ -52,6 +52,7 @@ def energyplus_plot(env_id, log_dirs=''):
         temp_w_per_episode = []
         temp_e_per_episode = []
         for ep in range(min([env.ep_model.num_episodes, num_episodes])):
+            print(ep)
             print('Episode {}'.format(ep))
             env.ep_model.read_episode(ep)
             MeanRew, _, _, _ = env.ep_model.get_statistics(env.ep_model.rewards)
@@ -79,8 +80,9 @@ def energyplus_plot(env_id, log_dirs=''):
     #labels = ['Rule-based + RLv2', 'RLv2', 'RLv1']
     labels[0] = "Baseline"
     labels[1] = "Moriyama et al."
-    labels[2] = "Rule-based + RL"
-    labels[3] = "Rule-based + RL (temp rew max 0.8)"
+    labels[2] = "Rule-based"
+    labels[3] = "Rule-based + RL"
+    labels[4] = "Rule-based + RL (temp rew max 0.8)"
 
     idx = 0
     for rewards_per_episode in rewards:
