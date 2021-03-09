@@ -15,6 +15,8 @@ from tqdm import tqdm
 import matplotlib.pyplot as plt
 import matplotlib
 from matplotlib.widgets import Slider, Button, RadioButtons
+# import logger
+from baselines import logger
 
 class EnergyPlusModel2ZoneDataCenterHVAC_wEconomizer_Temp_Fan(EnergyPlusModel):
 
@@ -79,10 +81,10 @@ class EnergyPlusModel2ZoneDataCenterHVAC_wEconomizer_Temp_Fan(EnergyPlusModel):
         self.action_space = spaces.Box(low =   np.array([ lo, lo, flow_lo, flow_lo]),
                                        high =  np.array([ hi, hi, flow_hi, flow_hi]),
                                        dtype = np.float32)
-        self.observation_space = spaces.Box( 
-            low =   np.array([-20.0, -20.0, -20.0,          0.0,          0.0,          0.0, -1.0, -1.0]),
-            high =  np.array([ 50.0,  50.0,  50.0, 1000000000.0, 1000000000.0, 1000000000.0,  1.0, 1.0]),
-            dtype = np.float32)
+        self.observation_space = spaces.Box(low =   np.array([-20.0, -20.0, -20.0,          0.0,          0.0,          0.0, -1.0,-1.0,-1.0,-1.0,0.0]),
+                                            high =  np.array([ 50.0,  50.0,  50.0, 1000000000.0, 1000000000.0, 1000000000.0,  1.0, 1.0, 1.0, 1.0,1.0]),
+                                            dtype = np.float32)
+
         
     def set_raw_state(self, raw_state):
         if raw_state is not None:
@@ -95,25 +97,95 @@ class EnergyPlusModel2ZoneDataCenterHVAC_wEconomizer_Temp_Fan(EnergyPlusModel):
         return rew
 
     def _compute_reward(self, raw_state = None):
-        return self.compute_reward_center23_5_gaussian1_0_trapezoid0_1_pue0_0(raw_state)
+        return self.compute_reward_stepfunction_custom(raw_state=raw_state)
+        # return self.compute_reward_center23_5_gaussian1_0_trapezoid0_1_pue0_0(raw_state)
         #return self.compute_reward_center23_5_gaussian1_0_trapezoid1_0_pue0_0(raw_state)
         #return self.compute_reward_gaussian1_0_trapezoid1_0_pue0_0(raw_state)
         #return self.compute_reward_gaussian1_0_trapezoid0_1_pue0_0_pow0(raw_state)
         #return self.compute_reward_gaussian1_0_trapezoid1_0_pue0_0(raw_state)
-        #return self.compute_reward_emphasize_power(raw_state)
+
+    # this function is a step function which can be used in the rewards
+    def step_function(self, temprature_val, reward_low_bound=4.0 ,raw_state = None):
+    # temp selected between 20 to 26 based on: https://www.ccohs.ca/oshanswers/phys_agents/thermal_comfort.html
+        mid_temp = 23.0
+        temp_range = 4.0
+        if temprature_val > 27.271:
+            reward_step = reward_low_bound * (1 / (1 + np.exp(2*(temprature_val - 26))) - 1)
+        elif temprature_val < 18.729:
+            reward_step = reward_low_bound * (1 / (1 + np.exp(-2*(temprature_val - 20))) - 1)
+        else:
+            # reward_step = -( (temprature_val - mid_temp)**20 / temp_range)
+            reward_step = 0
+        return reward_step
+
+    # def step_function_log(self, temprature_val, least_possible_reward=-4.0, raw_state = None):
+    #         mid_temp = 23.0
+    #         temp_range = 4.0
+    #         if temprature_val > 27.384:
+    #             # reward_step = 4 * (1 / (1 + np.exp(2*(temprature_val - 26))) - 1)
+    #             reward_step = ( 5 / (np.log(temprature_val - 25)) - 10)
+    #         elif temprature_val < 18.716:
+    #             # reward_step = 4 * (1 / (1 + np.exp(-2*(temprature_val - 20))) - 1)
+    #             reward_step = ( 5 / (np.log(21 - temprature_val)) - 10)
+    #         else:
+    #             # reward_step = -( (temprature_val - mid_temp)**20 / temp_range)
+    #             reward_step = 0
+    #         return reward_step
+
+    def step_function_log(self, temprature_val, least_possible_reward=-4.0, raw_state = None):
+            mid_temp = 23.0
+            temp_range = 4.0
+            if temprature_val > 27.649:
+                # reward_step = 4 * (1 / (1 + np.exp(2*(temprature_val - 26))) - 1)
+                reward_step = ( 5 / (np.log(temprature_val - 26)) - 10)
+            elif temprature_val < 18.351:
+                # reward_step = 4 * (1 / (1 + np.exp(-2*(temprature_val - 20))) - 1)
+                reward_step = ( 5 / (np.log(20 - temprature_val)) - 10)
+            else:
+                # reward_step = -( (temprature_val - mid_temp)**20 / temp_range)
+                reward_step = 0
+            return reward_step
+
+    def step_function_log_v2(self, temprature_val, least_possible_reward=-4.0, raw_state = None):
+        # https://www.cisco.com/c/en/us/solutions/collateral/data-center-virtualization/unified-computing/white_paper_c11-680202.html
+        # they mentioned that datacenter should be in between 18 to 27
+        # so the idea is to set a conservative threshould for it here betweem 18.8 to 26.1
+        if temprature_val > 28:
+            # reward_step = 4 * (1 / (1 + np.exp(2*(temprature_val - 26))) - 1)
+            reward_step = ( 1 / (np.log(temprature_val - 26.8)) - 6)
+        elif temprature_val < 18:
+            # reward_step = 4 * (1 / (1 + np.exp(-2*(temprature_val - 20))) - 1)
+            reward_step = ( 1 / (np.log(19.2 - temprature_val)) - 6)
+        else:
+            reward_step = 0
+        return reward_step
+
+    def compute_reward_stepfunction_custom(self, reward_low_bound=4.0, Whole_Building_Power_weight=1 / 100000.0, raw_state = None):
+        if raw_state is not None:
+            st = raw_state
+        else:
+            st = self.raw_state
         
-    def compute_reward_emphasize_power(self, raw_state = None): # gaussian/trapezoid, PUE
-        return self.compute_reward_common(
-            temperature_center = 23.5,
-            temperature_tolerance = 0.5,
-            temperature_gaussian_weight = 1.0,
-            temperature_gaussian_sharpness = 0.5,
-            temperature_trapezoid_weight = 0.1,
-            fluctuation_weight = 0.0,
-            PUE_weight = 0.0,
-            Whole_Building_Power_weight = 1 / 50000.0,
-            raw_state = raw_state)
-    
+        Tenv = st[0]
+        Tz1 = st[1]
+        Tz2 = st[2]
+        PUE = st[3]
+        Whole_Building_Power = st[4]
+        IT_Equip_Power = st[5]
+        Whole_HVAC_Power = st[6]
+        #log the whole power consumption at the point
+        logger.record_tabular('Whole_Building_Power', Whole_Building_Power)
+
+        reward_temp_z1 = self.step_function_log(temprature_val= Tz1)
+        reward_temp_z2 = self.step_function_log(temprature_val= Tz2)
+        rew_Whole_Building_Power = - Whole_Building_Power * Whole_Building_Power_weight
+        total_reward = reward_temp_z1 + reward_temp_z2 + rew_Whole_Building_Power
+        logger.record_tabular('reward_temp_z1', reward_temp_z1)
+        logger.record_tabular('reward_temp_z2', reward_temp_z2)
+        logger.record_tabular('rew_Whole_Building_Power', rew_Whole_Building_Power)
+        return total_reward, (reward_temp_z1, 0.0,  reward_temp_z2, 0.0, rew_Whole_Building_Power)
+
+        
     def compute_reward_center23_5_gaussian1_0_trapezoid0_1_pue0_0(self, raw_state = None): # gaussian/trapezoid, PUE
         return self.compute_reward_common(
             temperature_center = 23.5,
@@ -266,7 +338,7 @@ class EnergyPlusModel2ZoneDataCenterHVAC_wEconomizer_Temp_Fan(EnergyPlusModel):
     #   state[4] = raw_state[5]: Whole Building:Facility Total Building Electric Demand Power [W](Hourly)
     #   state[5] = raw_state[6]: Whole Building:Facility Total HVAC Electric Demand Power [W](Hourly)
     def format_state(self, raw_state):
-        return np.array([raw_state[0], raw_state[1], raw_state[2], raw_state[4], raw_state[5], raw_state[6], 0.0, 0.0])
+        return np.array([raw_state[0], raw_state[1], raw_state[2], raw_state[4], raw_state[5], raw_state[6], 0.0, 0.0, 0.0, 0.0, 0.0])
 
     def read_episode(self, ep):
         if type(ep) is str:

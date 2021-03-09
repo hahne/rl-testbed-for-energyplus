@@ -41,7 +41,7 @@ def energyplus_plot(env_id, log_dirs=''):
     temp_w = []
     temp_e = []
     labels = []
-    num_episodes = 200
+    num_episodes = 100
     for log_dir in log_dirs_list:
         label = re.search('\d\d\d\d-\d\d-\d\d-\d\d-\d\d-\d\d', log_dir).group(0)
         labels.append(label)
@@ -63,11 +63,11 @@ def energyplus_plot(env_id, log_dirs=''):
             print('MeanPower: ' + str(MeanPower))
             total_power_per_episode.append(MeanPower)
 
-            west_in_range = ((22 < env.ep_model.westzone_temp) & (env.ep_model.westzone_temp < 25)).sum() / len(env.ep_model.westzone_temp)
+            west_in_range = ((18 < env.ep_model.westzone_temp) & (env.ep_model.westzone_temp < 28)).sum() / len(env.ep_model.westzone_temp)
             print('west_in_range: ' + str(west_in_range))
             temp_w_per_episode.append(west_in_range)
 
-            east_in_range = ((22 < env.ep_model.eastzone_temp) & (env.ep_model.eastzone_temp < 25)).sum() / len(env.ep_model.eastzone_temp)
+            east_in_range = ((18 < env.ep_model.eastzone_temp) & (env.ep_model.eastzone_temp < 28)).sum() / len(env.ep_model.eastzone_temp)
             print('east_in_range: ' + str(east_in_range))
             temp_e_per_episode.append(east_in_range)
 
@@ -78,11 +78,13 @@ def energyplus_plot(env_id, log_dirs=''):
 
 
     #labels = ['Rule-based + RLv2', 'RLv2', 'RLv1']
-    labels[0] = "Baseline"
-    labels[1] = "Moriyama et al."
-    labels[2] = "Rule-based"
-    labels[3] = "Rule-based + RL"
-    labels[4] = "Rule-based + RL (temp rew max 0.8)"
+    labels[0] = "Moriyama et al."
+    labels[1] = "Safe Residual RL"
+    # labels[0] = "Baseline"
+    # labels[1] = "Moriyama et al."
+    # labels[2] = "Rule-based"
+    # labels[3] = "Rule-based + RL"
+    # labels[4] = "Rule-based + RL (temp rew max 0.8)"
 
     idx = 0
     for rewards_per_episode in rewards:
