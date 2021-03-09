@@ -118,15 +118,29 @@ class EnergyPlusModel2ZoneDataCenterHVAC_wEconomizer_Temp_Fan(EnergyPlusModel):
             reward_step = 0
         return reward_step
 
+    # def step_function_log(self, temprature_val, least_possible_reward=-4.0, raw_state = None):
+    #         mid_temp = 23.0
+    #         temp_range = 4.0
+    #         if temprature_val > 27.384:
+    #             # reward_step = 4 * (1 / (1 + np.exp(2*(temprature_val - 26))) - 1)
+    #             reward_step = ( 5 / (np.log(temprature_val - 25)) - 10)
+    #         elif temprature_val < 18.716:
+    #             # reward_step = 4 * (1 / (1 + np.exp(-2*(temprature_val - 20))) - 1)
+    #             reward_step = ( 5 / (np.log(21 - temprature_val)) - 10)
+    #         else:
+    #             # reward_step = -( (temprature_val - mid_temp)**20 / temp_range)
+    #             reward_step = 0
+    #         return reward_step
+
     def step_function_log(self, temprature_val, least_possible_reward=-4.0, raw_state = None):
             mid_temp = 23.0
             temp_range = 4.0
-            if temprature_val > 27.384:
+            if temprature_val > 27.649:
                 # reward_step = 4 * (1 / (1 + np.exp(2*(temprature_val - 26))) - 1)
-                reward_step = ( 5 / (np.log(temprature_val - 25)) - 10)
-            elif temprature_val < 18.716:
+                reward_step = ( 5 / (np.log(temprature_val - 26)) - 10)
+            elif temprature_val < 18.351:
                 # reward_step = 4 * (1 / (1 + np.exp(-2*(temprature_val - 20))) - 1)
-                reward_step = ( 5 / (np.log(21 - temprature_val)) - 10)
+                reward_step = ( 5 / (np.log(20 - temprature_val)) - 10)
             else:
                 # reward_step = -( (temprature_val - mid_temp)**20 / temp_range)
                 reward_step = 0
